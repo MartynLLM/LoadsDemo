@@ -6,6 +6,8 @@ Contains functions for calculating statistical properties of time series.
 
 import numpy as np
 from typing import Dict, Optional
+from .data_io import read_flow_data # type: ignore
+
 
 
 def calculate_series_statistics(data: np.ndarray) -> Dict[str, float]:
