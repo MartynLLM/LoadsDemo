@@ -1,0 +1,17 @@
+{
+  "input_csv_file": "SavjaForClaude.csv",
+  "output_database_file": "SavjaForClaude.db",
+  "mean_percentages": [60, 80, 100, 120, 140],
+  "variance_percentages": [60, 80, 100, 120, 140],
+  "correlations": [0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 1.0],
+  "min_value": 0.001,
+  "random_seed": 42,
+  "description": "Configuration file for non-negative time series generator",
+  "notes": [
+    "mean_percentages: Target mean as percentage of original mean",
+    "variance_percentages: Target variance as percentage of original variance", 
+    "correlations: Target correlations with original series",
+    "min_value: Minimum allowed value in generated series",
+    "All generated series will be non-negative"
+  ]
+}
