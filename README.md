@@ -1,6 +1,6 @@
 # Loads Demo
 This repository contains Python code for assessing the performance of loads statistics by simulating streamflow and chemistry time series with arbitrary correlations and variance relationships.
 
-Currently, minimal_generator_json.py takes a .json file, generator_parameters.json, which lists a .csv file containing input data, statistics for simulation and an output SQLite database. 
+Currently, loads.py takes a .json file, cq_generator_parameters.json, which lists .csv files containing input flow andchemistry data, statistics for simulation and the name of output SQLite database. 
 
-The code has been tested with flow time series and will be refined to also include chemical data.
+A test data set is available in the sampleData folder
