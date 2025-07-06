@@ -74,24 +74,330 @@ The **Loads Demo** repository is a Python-based system for assessing the perform
 - **Range**: 81 to 3,762 units
 - **Characteristics**: Seasonal chemistry variations, higher winter concentrations
 
-## Technical Architecture
+## Dependencies and Installation
 
-### Database Schema Design
+### System Requirements
+- **Python**: Version 3.6 or higher
+- **Operating System**: Cross-platform (Windows, macOS, Linux)
 
-**Normalized SQLite Database** with the following structure:
+### Required Non-Standard Libraries
+
+#### Core Dependencies (Required for all applications)
+```bash
+# Install via pip
+pip install pandas numpy
+
+# Or via conda
+conda install pandas numpy
+```
+
+**pandas** (Data manipulation and analysis)
+- **Version**: 1.0.0 or higher recommended
+- **Purpose**: CSV reading, data cleaning, DataFrame operations, statistical grouping
+- **Key Functions**: `read_csv()`, `DataFrame`, `groupby()`, date parsing
+
+**numpy** (Numerical computing)
+- **Version**: 1.18.0 or higher recommended  
+- **Purpose**: Array operations, statistical calculations, random number generation
+- **Key Functions**: Vectorized operations, correlation calculations, mathematical functions
+
+#### Visualization Dependencies (Required for scenario_viewer.py only)
+```bash
+# Install via pip
+pip install matplotlib
+
+# Or via conda
+conda install matplotlib
+```
+
+**matplotlib** (Plotting and visualization)
+- **Version**: 3.1.0 or higher recommended
+- **Purpose**: Interactive plotting, figure export, GUI integration
+- **Key Components**: `pyplot`, `backends.backend_tkagg`, figure/axis management
+
+### Standard Library Dependencies
+The following are included with Python and require no additional installation:
+- **sqlite3**: Database operations
+- **tkinter**: GUI framework (may need separate installation on some Linux distributions)
+- **json**: Configuration file parsing
+- **argparse**: Command-line argument parsing
+- **os**: File system operations
+
+### Installation Commands
+
+#### Complete Installation (All Features)
+```bash
+# Using pip
+pip install pandas numpy matplotlib
+
+# Using conda
+conda install pandas numpy matplotlib
+
+# Alternative: Install from requirements file
+pip install -r requirements.txt
+```
+
+#### Minimal Installation (Core Generation Only)
+```bash
+# For loads.py and cq_dual_generator.py only
+pip install pandas numpy
+```
+
+#### Verification
+```python
+# Test installation
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt  # If using scenario_viewer.py
+print("All dependencies successfully installed!")
+```
+
+## SQLite Database Viewing and Analysis
+
+The system generates comprehensive SQLite databases containing all generated time series data, statistics, and metadata. Here are multiple approaches for viewing and analyzing the database contents.
+
+### Database Structure Overview
 
 #### Core Tables
-- **input_flow** / **input_chem**: Original input time series data
-- **flow_combinations** / **chem_combinations**: Parameter combination lookup tables
-- **Flows** / **Chem**: Generated time series data (normalized design)
-- **flow_metadata** / **chem_metadata**: Generation statistics and validation metrics
+- **input_flow**, **input_chem**: Original input data
+- **Flows**, **Chem**: Generated time series data
+- **flow_combinations**, **chem_combinations**: Parameter combinations
+- **flow_metadata**, **chem_metadata**: Generation statistics
 - **Loads**: Flow:chemistry tuples with calculated loads
 - **loads_statistics**: Comprehensive scenario statistics
 
 #### Database Views
-- **Flows_view** / **Chem_view**: Denormalized views combining input and generated data
-- **comprehensive_metadata**: Complete scenario information with parameters and statistics
-- **scenario_summary**: Streamlined view for analysis and visualization
+- **Flows_view**, **Chem_view**: Denormalized data views
+- **comprehensive_metadata**: Complete scenario information
+- **scenario_summary**: Streamlined analysis view
+
+### Viewing Methods
+
+#### 1. Command-Line SQLite Tools
+
+**Install SQLite Command-Line Tool:**
+```bash
+# Ubuntu/Debian
+sudo apt-get install sqlite3
+
+# macOS (via Homebrew)
+brew install sqlite
+
+# Windows: Download from https://sqlite.org/download.html
+```
+
+**Basic Database Exploration:**
+```bash
+# Open database
+sqlite3 LoadsDemo.db
+
+# List all tables and views
+.tables
+
+# View table schema
+.schema Loads
+
+# Quick data overview
+SELECT COUNT(*) FROM loads_statistics;
+SELECT * FROM loads_statistics LIMIT 5;
+
+# Export data to CSV
+.headers on
+.mode csv
+.output scenarios.csv
+SELECT * FROM scenario_summary;
+.quit
+```
+
+#### 2. GUI Database Browsers
+
+**Recommended Tools:**
+
+**DB Browser for SQLite** (Free, Cross-platform)
+```bash
+# Installation
+# Ubuntu/Debian
+sudo apt-get install sqlitebrowser
+
+# macOS
+brew install --cask db-browser-for-sqlite
+
+# Windows: Download from https://sqlitebrowser.org/
+```
+
+**DBeaver** (Free, Professional)
+- Download from: https://dbeaver.io/
+- Supports SQLite and many other databases
+- Advanced query tools and data visualization
+
+**SQLiteStudio** (Free, Lightweight)
+- Download from: https://sqlitestudio.pl/
+- Portable application, no installation required
+
+#### 3. Python-Based Viewing
+
+**Quick Data Exploration Script:**
+```python
+import sqlite3
+import pandas as pd
+
+# Connect to database
+conn = sqlite3.connect('LoadsDemo.db')
+
+# List all tables and views
+tables_query = """
+    SELECT name, type FROM sqlite_master 
+    WHERE type IN ('table', 'view') 
+    ORDER BY type, name
+"""
+tables = pd.read_sql_query(tables_query, conn)
+print("Available tables and views:")
+print(tables)
+
+# Load key summary data
+summary = pd.read_sql_query("SELECT * FROM scenario_summary LIMIT 10", conn)
+print("\nSample scenario data:")
+print(summary.head())
+
+# Basic statistics
+stats_query = """
+    SELECT 
+        COUNT(*) as total_scenarios,
+        MIN(load_correlation) as min_load_corr,
+        MAX(load_correlation) as max_load_corr,
+        AVG(load_correlation) as avg_load_corr,
+        AVG(rmse) as avg_rmse
+    FROM loads_statistics
+"""
+stats = pd.read_sql_query(stats_query, conn)
+print("\nDatabase statistics:")
+print(stats)
+
+conn.close()
+```
+
+**Data Export Script:**
+```python
+import sqlite3
+import pandas as pd
+
+conn = sqlite3.connect('LoadsDemo.db')
+
+# Export scenario summary to Excel
+scenario_summary = pd.read_sql_query("SELECT * FROM scenario_summary", conn)
+scenario_summary.to_excel('scenario_analysis.xlsx', index=False)
+
+# Export time series data for specific scenario
+time_series_query = """
+    SELECT l.date, l.flow_input_value, l.flow_generated_value,
+           l.chem_input_value, l.chem_generated_value,
+           l.input_load, l.generated_load
+    FROM Loads l
+    WHERE l.scenario_id = 'F_M100_V100_C0.50_C_M100_V100_C-0.50'
+    ORDER BY l.date
+"""
+time_series = pd.read_sql_query(time_series_query, conn)
+time_series.to_csv('sample_time_series.csv', index=False)
+
+conn.close()
+print("Data exported successfully!")
+```
+
+### Key Analysis Queries
+
+#### Scenario Performance Analysis
+```sql
+-- Top performing scenarios by correlation
+SELECT scenario_id, flow_correlation, chem_correlation, 
+       load_correlation, rmse, r_squared
+FROM scenario_summary
+ORDER BY load_correlation DESC
+LIMIT 10;
+
+-- Chemistry correlation impact
+SELECT chem_correlation, 
+       AVG(load_correlation) as avg_load_corr,
+       COUNT(*) as scenario_count
+FROM scenario_summary
+GROUP BY chem_correlation
+ORDER BY chem_correlation;
+```
+
+#### Time Series Data Analysis
+```sql
+-- Load statistics by flow correlation
+SELECT f.correlation as flow_corr,
+       AVG(l.generated_load) as avg_load,
+       STDDEV(l.generated_load) as std_load
+FROM Loads l
+JOIN flow_combinations f ON l.flow_combination_id = f.combination_id
+GROUP BY f.correlation
+ORDER BY f.correlation;
+
+-- Monthly load patterns
+SELECT strftime('%m', date) as month,
+       AVG(generated_load) as avg_monthly_load
+FROM Loads
+WHERE scenario_id = 'F_M100_V100_C1.00_C_M100_V100_C1.00'
+GROUP BY month
+ORDER BY month;
+```
+
+#### Data Quality Verification
+```sql
+-- Check for negative values (should be zero)
+SELECT 
+    'Flows' as table_name,
+    COUNT(*) as negative_count
+FROM Flows 
+WHERE generated_value < 0
+UNION ALL
+SELECT 
+    'Chem' as table_name,
+    COUNT(*) as negative_count
+FROM Chem 
+WHERE generated_value < 0;
+
+-- Correlation accuracy summary
+SELECT 
+    AVG(ABS(flow_achieved_correlation - flow_target_correlation)) as avg_flow_corr_error,
+    AVG(ABS(chem_achieved_correlation - chem_target_correlation)) as avg_chem_corr_error,
+    MAX(ABS(flow_achieved_correlation - flow_target_correlation)) as max_flow_corr_error,
+    MAX(ABS(chem_achieved_correlation - chem_target_correlation)) as max_chem_corr_error
+FROM comprehensive_metadata;
+```
+
+### Database Performance Tips
+
+#### Indexing for Large Datasets
+```sql
+-- Additional indexes for performance (if needed)
+CREATE INDEX IF NOT EXISTS idx_loads_date_scenario ON Loads(date, scenario_id);
+CREATE INDEX IF NOT EXISTS idx_loads_values ON Loads(flow_generated_value, chem_generated_value);
+```
+
+#### Memory Optimization for Large Queries
+```python
+# For large datasets, use chunked reading
+def read_large_table(conn, table_name, chunk_size=10000):
+    offset = 0
+    while True:
+        query = f"SELECT * FROM {table_name} LIMIT {chunk_size} OFFSET {offset}"
+        chunk = pd.read_sql_query(query, conn)
+        if chunk.empty:
+            break
+        yield chunk
+        offset += chunk_size
+
+# Example usage
+conn = sqlite3.connect('LoadsDemo.db')
+for chunk in read_large_table(conn, 'Loads', 5000):
+    # Process chunk
+    print(f"Processing {len(chunk)} records...")
+conn.close()
+```
+
+## Technical Architecture
 
 ### Statistical Methods
 
@@ -181,21 +487,6 @@ python scenario_viewer.py LoadsDemo.db
 - **Error Reporting**: Detailed error tracking and reporting
 - **Test Mode**: Built-in verification and validation
 - **Robustness**: Comprehensive error handling and edge case management
-
-## Dependencies
-
-### Core Requirements
-- **Python 3.x**
-- **pandas**: Data manipulation and analysis
-- **numpy**: Numerical computations and array operations
-- **sqlite3**: Database storage and management
-- **matplotlib**: Plotting and visualization (for scenario_viewer.py)
-- **tkinter**: GUI framework (for scenario_viewer.py)
-
-### Standard Library
-- **json**: Configuration file parsing
-- **argparse**: Command-line interface
-- **os**: File system operations
 
 ## License and Usage
 
